@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dodo - Voice Assistant</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-image: url(img01.jpg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #fff;
+    }
+
+    .assistant-card {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 1.8rem;
+    }
+
+    .status {
+      font-size: 0.9rem;
+      color: #ddd;
+      margin-bottom: 20px;
+    }
+
+    .mic-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: none;
+      outline: none;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.2s;
+    }
+
+    .mic-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .mic-icon {
+      font-size: 36px;
+      color: #111;
+    }
+
+    .pulse {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(79, 172, 254, 0.3);
+      top: -10px;
+      left: -10px;
+      animation: pulse 1.5s infinite;
+      display: none;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.9);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    .transcript {
+      margin-top: 25px;
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+      padding-right: 10px;
+    }
+
+    .msg {
+      margin: 8px 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      max-width: 80%;
+      clear: both;
+    }
+
+    .user {
+      background: #4facfe;
+      color: #111;
+      float: right;
+      border-bottom-right-radius: 0;
+    }
+
+    .assistant {
+      background: #2c2f33;
+      color: #fff;
+      float: left;
+      border-bottom-left-radius: 0;
+    }
+    .gif{
+      height: 40px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="assistant-card">
+    <h1>🤖 Dodo - Virtual Assistant</h1>
+    <div class="status" id="status">Status: idle</div>
+    <div style="position:relative; display:inline-block;">
+      <div class="pulse" id="pulse"></div>
+      <button class="mic-btn" id="micBtn">
+        <!-- <span class="mic-icon">🎙️</span> -->
+         <img src="gif10.gif" alt="gif" class="gif">
+      </button>
+    </div>
+    <div class="transcript" id="transcript"></div>
+  </div>
+
+  <script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const synth = window.speechSynthesis;
+
+    const micBtn = document.getElementById('micBtn');
+    const statusEl = document.getElementById('status');
+    const transcriptEl = document.getElementById('transcript');
+    const pulse = document.getElementById('pulse');
+
+    let recognition;
+    let listening = false;
+
+    // -------- Functions --------
+    function initRecognition() {
+      if (!SpeechRecognition) {
+        alert("Speech Recognition not supported. Use Chrome/Edge.");
+        return;
+      }
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-IN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        updateStatus("Listening...");
+        pulse.style.display = "block";
+      };
+      recognition.onend = () => {
+        updateStatus("Idle");
+        pulse.style.display = "none";
+        listening = false;
+      };
+      recognition.onerror = e => appendLine("Error: " + e.error, 'assistant');
+      recognition.onresult = e => {
+        const text = e.results[0][0].transcript;
+        appendLine(text, 'user');
+        handleCommand(text.toLowerCase());
+      };
+    }
+
+    function updateStatus(text) {
+      statusEl.textContent = "Status: " + text;
+    }
+
+    function appendLine(text, who) {
+      const d = document.createElement('div');
+      d.className = 'msg ' + who;
+      d.textContent = text;
+      transcriptEl.appendChild(d);
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    }
+
+    function speak(text) {
+      if (!synth) return;
+      synth.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = /[\u0900-\u097F]/.test(text) ? 'hi-IN' : 'en-IN';
+      synth.speak(utter);
+    }
+
+    function respond(message) {
+      speak(message);
+      appendLine(message, 'assistant');
+    }
+
+    // ---- Handle Commands ----
+    function handleCommand(text) {
+      if (text.includes('time') || text.includes('waqt') || text.includes('samay')) {
+        const now = new Date().toLocaleTimeString();
+        respond("The time is " + now);
+      }
+      else if (text.includes('who are you') || text.includes('tum kaun ho')) {
+        respond("I am your virtual assistant Dodo.");
+      }
+      else if (text.includes('youtube')) {
+        respond("Opening YouTube");
+        window.open('https://www.youtube.com', '_blank');
+      }
+      else if (text.includes('google')) {
+        respond("Opening Google");
+        window.open('https://www.google.com', '_blank');
+      }
+      else if (text.includes('instagram') || text.includes('insta')) {
+        respond("Opening Instagram");
+        window.open('https://www.instagram.com', '_blank');
+      }
+      else if (text.includes('facebook')) {
+        respond("Opening Facebook");
+        window.open('https://www.facebook.com', '_blank');
+      }
+      else if (text.includes('whatsapp')) {
+        respond("Opening WhatsApp Web");
+        window.open('https://web.whatsapp.com', '_blank');
+      }
+      else if (text.includes('calculator')) {
+        respond("Here is a calculator");
+        window.open('https://www.google.com/search?q=calculator', '_blank');
+      }
+      else if (text.includes('search')) {
+        const query = text.replace('search', '').trim();
+        respond("Searching for " + query);
+        window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank');
+      }
+      else {
+        respond("Sorry, I didn't understand.");
+      }
+    }
+
+    // ---- Auto Greeting ----
+    function greetUser() {
+      const hour = new Date().getHours();
+      let greeting = "Hello!";
+      if (hour < 12) greeting = "Good Morning!";
+      else if (hour < 18) greeting = "Good Afternoon!";
+      else greeting = "Good Evening!";
+
+      respond(greeting + " I am your virtual assistant Dodo. How can I help you?");
+    }
+
+    function toggleListening() {
+      if (listening) {
+        recognition.stop();
+        listening = false;
+      } else {
+        recognition.start();
+        listening = true;
+      }
+    }
+
+    // ---- Init ----
+    initRecognition();
+    micBtn.onclick = toggleListening;
+
+    // ---- Auto Greeting on page load ----
+    window.addEventListener("load", () => {
+      // Delay slightly to allow browser to unlock audio
+      setTimeout(() => {
+        greetUser();
+      }, 500);
+    });
+  </script>
+</body>
+
+</html>
